@@ -53,6 +53,8 @@ INSERT INTO commissions VALUES (8, 6, 5000);
 
 /*1. Find the employee who gets the highest total commission.*/
 
+
+/* This query returns first row with highest total commission*/
 SELECT e.id, e.name
 FROM commissions as c
 INNER JOIN 
@@ -60,13 +62,31 @@ employees as e
 ON 
 e.id = c.employee_id
 GROUP BY c.employee_id
-HAVING SUM(c.commission_amount) = (
-        SELECT SUM(c.commission_amount)
-        FROM commissions as c
-        GROUP BY c.employee_id
-        ORDER BY SUM(c.commission_amount) DESC
-        LIMIT 1
-        );
+ORDER BY SUM(c.commission_amount) DESC LIMIT 1;
+/* OUTPUT
+id      name
+1       Chris Gayle
+*/
+
+/* This query returns all row with highest total commission*/
+
+/*view created having id, name and total commissions*/
+CREATE VIEW totalCommissions AS
+SELECT e.id, e.name, SUM(c.commission_amount) as totalCommission
+FROM commissions as c
+INNER JOIN 
+employees as e
+ON 
+e.id = c.employee_id
+GROUP BY c.employee_id
+ORDER BY SUM(c.commission_amount);
+
+
+SELECT "";
+SELECT t.id, t.name
+FROM totalCommissions as t LEFT JOIN totalCommissions as t2
+ON t.totalCommission < t2.totalCommission
+WHERE t2.totalCommission IS NULL;
 /* OUTPUT
 id      name
 1       Chris Gayle
@@ -81,14 +101,8 @@ CREATE INDEX salary ON employees(salary);
 
 SELECT id, name
 FROM employees
-WHERE salary = (
-        SELECT salary 
-        FROM (SELECT DISTINCT salary
-                FROM employees
-                ORDER BY salary DESC
-                LIMIT 4) as dist_salary
-        ORDER BY salary ASC
-        LIMIT 1);
+ORDER BY salary DESC
+LIMIT 1 OFFSET 3;
 /*
 OUTPUT:
 id      name
@@ -98,50 +112,33 @@ id      name
 /*Used empty select to print empty line between two queries result in command line  to increase readability */
 SELECT "";
 /*3 Find department that is giving highest commission.*/
-
-SET @highest_commission_by_any_department = (
-    SELECT SUM(c.commission_amount) as total_commission_amount
-    FROM departments as d
-    INNER JOIN
-    employees as e
-    ON d.id = e.department_id  
-    INNER JOIN
-    commissions as c
-    ON c.employee_id = e.id
-    GROUP BY d.id
-    ORDER BY total_commission_amount DESC
-    LIMIT 1
-    );
-
 SELECT d.name
 FROM departments as d
-INNER JOIN
-employees as e
+INNER JOIN employees as e
 ON d.id = e.department_id
 INNER JOIN
 commissions as c
 ON c.employee_id = e.id
-GROUP BY d.id
-HAVING SUM(c.commission_amount) = @highest_commission_by_any_department;
+LEFT JOIN commissions as c1
+ON c.commission_amount < c1.commission_amount
+WHERE c1.commission_amount IS NULL;
 
 /*
 Output
 name
 Banking
+Services
 */
 
 /*Used empty select to print empty line between two queries result in command line to increase readability */  
 SELECT "";
 /*4. Find employees getting commission more than 3000*/
 
-SELECT CONCAT((SELECT GROUP_CONCAT(e.name SEPARATOR ", ")
+SELECT CONCAT((SELECT GROUP_CONCAT(distinct e.name SEPARATOR ", ")
 FROM employees as e
-WHERE e.id IN (
-SELECT c.employee_id
-FROM commissions as c
-GROUP BY c.employee_id
-HAVING SUM(commission_amount) > 3000)), "  ",3000) as result;
-
+INNER JOIN commissions as c
+ON c.employee_id = e.id
+WHERE c.commission_amount > 3000), "  ",3000) as result;
 /*
 Output:
 result
